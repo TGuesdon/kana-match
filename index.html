@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kana Match — Hiragana ↔ Katakana</title>
+  <meta name="description" content="Exercice simple pour associer hiraganas et katakanas.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <h1>Kana Match</h1>
+    </header>
+
+    <section class="board" aria-label="Exercice d'association">
+      <div class="column">
+        <h2 class="column-title">ひらがな</h2>
+        <ul id="hiragana-list" class="cards"></ul>
+      </div>
+      <div class="column">
+        <h2 class="column-title">カタカナ</h2>
+        <ul id="katakana-list" class="cards"></ul>
+      </div>
+    </section>
+
+    <p id="feedback" class="feedback" aria-live="polite">Touche un caractère pour commencer.</p>
+
+    <button id="new-round" class="btn" type="button">Relancer</button>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
