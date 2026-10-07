@@ -12,10 +12,49 @@ const KANA = [
   ['wa', 'わ', 'ワ'], ['wo', 'を', 'ヲ'], ['n', 'ん', 'ン'],
 ];
 
+// Groupes de kanas faciles à confondre (par romaji), toutes écritures confondues
+const LOOKALIKES = [
+  // Hiragana
+  ['shi', 'tsu'],        // し つ
+  ['sa', 'chi', 'ki'],   // さ ち き
+  ['sa', 'se'],          // さ せ
+  ['ha', 'ho', 'ke'],    // は ほ け
+  ['nu', 'me'],          // ぬ め
+  ['ne', 're', 'wa'],    // ね れ わ
+  ['ru', 'ro'],          // る ろ
+  ['i', 'ri'],           // い り
+  ['ta', 'na'],          // た な
+  ['ma', 'mo'],          // ま も
+  ['a', 'o'],            // あ お
+  ['ko', 'ni'],          // こ に
+  ['u', 'ra'],           // う ら
+  // Katakana
+  ['n', 'so'],           // ン ソ
+  ['ku', 'ke', 'ta'],    // ク ケ タ
+  ['u', 'wa', 'fu'],     // ウ ワ フ
+  ['nu', 'su'],          // ヌ ス
+  ['ko', 'yu', 'ro'],    // コ ユ ロ
+  ['chi', 'te'],         // チ テ
+  ['a', 'ma'],           // ア マ
+  ['ru', 're'],          // ル レ
+  ['ra', 'wo', 'fu'],    // ラ ヲ フ
+  ['no', 'me', 'na'],    // ノ メ ナ
+  ['e', 'ni'],           // エ ニ
+];
+
+// romaji -> ensemble de ses sosies
+const LOOKALIKE_MAP = {};
+LOOKALIKES.forEach((group) => group.forEach((romaji) => {
+  LOOKALIKE_MAP[romaji] ??= new Set();
+  group.forEach((other) => other !== romaji && LOOKALIKE_MAP[romaji].add(other));
+}));
+
 const PAIRS_PER_ROUND = 5;
 const STORAGE_KEY = 'kana-match:mistakes';
 const MAX_MISTAKES = 5;   // plafond pour qu'une paire ne monopolise pas les séries
 const MISTAKE_WEIGHT = 3; // chaque erreur ajoute ce poids au tirage (poids de base : 1)
+const LOOKALIKE_BONUS = 0.5; // bonus de base pour un kana qui a des sosies
+const LOOKALIKE_BOOST = 2;   // multiplicateur des sosies d'un kana déjà tiré dans la série
 
 const hiraList = document.getElementById('hiragana-list');
 const kataList = document.getElementById('katakana-list');
@@ -65,15 +104,24 @@ function shuffle(array) {
   return a;
 }
 
-// Tirage pondéré sans remise : les paires souvent ratées sortent plus souvent
+function baseWeight(romaji) {
+  const lookalikeBonus = LOOKALIKE_MAP[romaji] ? LOOKALIKE_BONUS : 0;
+  return 1 + lookalikeBonus + MISTAKE_WEIGHT * (mistakes[romaji] || 0);
+}
+
+// Tirage pondéré sans remise : les paires souvent ratées et les kanas qui se
+// ressemblent sortent plus souvent, et les sosies ont tendance à sortir ensemble
 function weightedSample(items, count) {
-  const pool = items.map((item) => ({ item, weight: 1 + MISTAKE_WEIGHT * (mistakes[item[0]] || 0) }));
+  const pool = items.map((item) => ({ item, weight: baseWeight(item[0]) }));
   const result = [];
   while (result.length < count && pool.length) {
     const total = pool.reduce((sum, p) => sum + p.weight, 0);
     let r = Math.random() * total;
     const index = pool.findIndex((p) => (r -= p.weight) < 0);
-    result.push(pool.splice(index === -1 ? pool.length - 1 : index, 1)[0].item);
+    const [picked] = pool.splice(index === -1 ? pool.length - 1 : index, 1);
+    result.push(picked.item);
+    const lookalikes = LOOKALIKE_MAP[picked.item[0]];
+    if (lookalikes) pool.forEach((p) => lookalikes.has(p.item[0]) && (p.weight *= LOOKALIKE_BOOST));
   }
   return result;
 }
